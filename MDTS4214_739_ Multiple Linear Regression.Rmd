@@ -1,0 +1,347 @@
+---
+title: "MDTS4214_739_ Multiple Linear Regression"
+author: "Debkanta Ghosh"
+date: "2026-02-18"
+output: word_document
+---
+
+## PROBLEM SET 3
+*PROBLEM 3:-* Problem to demonstrate the role of qualitative (ordinal) predictors in addition to quantitative predictors in multiple linear regression
+
+Consider “diamonds” data set in R. It is in the ggplot2 package. Make a list of
+all the ordinal categorical variables. Identify the response.
+```{r}
+rm(list=ls())
+library(ggplot2)
+attach(diamonds)
+head(diamonds)
+dim(diamonds)
+#HERE RESPONSE IS PRICE
+```
+
+(a) Run a linear regression of the response on the quality of cut. Write the fitted
+regression model.
+```{r}
+fit1=lm(price~relevel(factor(as.character(cut)),ref="Ideal"),data=diamonds)
+summary(fit1)
+```
+\[
+\hat{\text{price}} = 3457.54
++ 901.22\, I_1
++ 471.32\, I_2
++ 1126.72\, I_3
++ 524.22\, I_4
+\]
+\[
+\begin{aligned}
+I_1 &= 
+\begin{cases}
+1, & \text{if cut = Fair} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_2 &= 
+\begin{cases}
+1, & \text{if cut = Good} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_3 &= 
+\begin{cases}
+1, & \text{if cut = Premium} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_4 &= 
+\begin{cases}
+1, & \text{if cut = Very Good} \\
+0, & \text{otherwise}
+\end{cases}
+\end{aligned}
+\]
+
+(b) Test whether the expected price of diamond with premium cut is significantly different from that of the ideal cut.
+
+ANS:-There is strong statistical evidence that the expected price of a diamond with a Premium cut is significantly different from that of an Ideal cut.
+Specifically, Premium cut diamonds have a significantly higher expected price than Ideal cut diamonds.
+
+(c) What is the expected price of a diamond of ideal cut?
+
+ANS:-The expected price of a diamond with an Ideal cut is $3457.54
+
+(d) Modify the regression model in (a) by incorporating the predictor “table”.
+Write the fitted regression model.
+```{r}
+fit2=lm(price~relevel(factor(as.character(cut)),ref="Ideal")+table,data=diamonds)
+summary(fit2)
+```
+\[
+\hat{\text{price}} = -6563.672
++ 345.611\, I_1
+- 19.957\, I_2
++ 626.220\, I_3
++ 165.206\, I_4
++ 179.105\, T
+\]
+\[
+\begin{aligned}
+I_1 &= 
+\begin{cases}
+1, & \text{if cut = Fair} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_2 &= 
+\begin{cases}
+1, & \text{if cut = Good} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_3 &= 
+\begin{cases}
+1, & \text{if cut = Premium} \\
+0, & \text{otherwise}
+\end{cases} \\
+I_4 &= 
+\begin{cases}
+1, & \text{if cut = Very Good} \\
+0, & \text{otherwise}
+\end{cases}
+\end{aligned}
+\]
+\[
+T = \text{table (percentage of the diamond’s width)}
+\]
+
+
+(e) Test for the significance of “table” in predicting the price of diamond.
+
+
+ANS:- There is strong statistical evidence that table is a significant predictor of the price of a diamond.
+Specifically, holding cut constant, an increase of one unit in table is associated with an average increase of approximately 179.1 units in the diamond’s price.
+
+
+(f) Find the average estimated price of a diamond with an average table value
+and which is of fair cut.
+
+\[
+\hat{\text{price}} = -6563.672
++ 345.611\, I_1
+- 19.957\, I_2
++ 626.220\, I_3
++ 165.206\, I_4
++ 179.105\, T
+\]
+\[
+\begin{aligned}
+\hat{\text{price}}
+&= -6563.672 + 345.611 + 179.105\,\bar{T} \\
+&= -6218.061 + 179.105\,\bar{T}
+\end{aligned}
+\]
+
+
+*PROBLEM 5:-*5 Problem to demonstrate the utility of nonlinear regression over linear regression
+
+Get the fgl data set from “MASS” library.
+```{r}
+rm(list=ls())
+library(MASS)
+df=fgl
+attach(fgl)
+head(df)
+```
+
+(a) Considering the refractive index (RI) of “Vehicle Window glass” as the
+variable of interest and assuming linearity of regression, run multiple linear
+regression of RI on different metallic oxides. From the p value, report which
+metallic oxide best explains the refractive index.
+```{r}
+df.1=fgl[fgl$type=="Veh",]
+df.1$type = NULL
+fit1=lm(RI~.,data=df.1)
+summary(fit1)
+```
+Fe best explains the refractive index.
+
+(b) Run a simple linear regression of RI on the best predictor chosen in (a).
+```{r}
+fit2=lm(RI~Fe,data=df.1)
+summary(fit2)
+```
+
+(c) Can you further improve the regression of the refractive index of “Vehicle
+Window glass” on the predictor chosen by you in part (a)? Give the new fitted
+model and compare its performance with the model in (b).
+```{r}
+fit3=lm(RI~Fe+I(Fe^2),data=df.1)
+summary(fit3)
+fit4=lm(RI~Fe+I(Fe^2)+I(Fe^3),data=df.1)
+summary(fit4)
+```
+# Quadratic is giving substancial improvement over linear regression
+# Cubic is slight improvement over quadratic so we choose quadratic regression
+
+
+## PROBLEM SET 4
+
+*PROBLEM SET 4:-* Problem to demonstrate multicollinearity
+Consider the Credit data in the ISLR library. Choose balance as the response
+and Age, Limit and Rating as the predictors.
+```{r}
+rm(list=ls())
+library(ISLR)
+attach(Credit)
+head(Credit)
+df=Credit[,c(3,4,6,12)]
+head(df)
+```
+
+(a) Make a scatter plot of (i) Age versus Limit and (ii) Rating Versus Limit.
+Comment on the scatter plot.
+```{r}
+par(mfrow=c(1,2))
+plot(Limit,Rating,main="Scatterplot of Rating vs Limit")
+plot(Limit,Age,main="Scatterplot of Age vs Limit")
+```
+
+**Comment:**
+
+- **Rating vs Limit:**  
+  The scatterplot shows a very strong positive linear relationship between rating and credit limit. As rating increases, the credit limit increases almost proportionally, with points closely clustered around a straight line. This indicates that rating is a strong predictor of credit limit.
+
+- **Age vs Limit:**  
+  The scatterplot shows no clear linear relationship between age and credit limit. The points are widely scattered, suggesting that age has little or no influence on the credit limit.
+
+**Conclusion:**  
+Credit limit is strongly associated with rating, whereas age does not appear to be an important predictor of credit limit.
+
+(b) Run three separate regressions: (i) Balance on Age and Limit (ii) Balance
+on Age, Rating and Limit (iii) Balance on Rating and Limit. Present all the
+regression output in a single table using stargazer. What is the marked difference that you can observe from the output?
+```{r}
+fit1=lm(Balance~Age+Limit)
+fit2=lm(Balance~Rating+Age+Limit)
+fit3=lm(Balance~Rating+Limit)
+library(stargazer)
+stargazer(fit1,fit2,fit3,type="text",out="f2.txt")
+```
+
+
+(c) Calculate the variance inflation factor (VIF) and comment on multicollinearity.
+
+```{r}
+library(car)
+vif(fit1)
+vif(fit2)
+vif(fit3)
+```
+
+The VIF results clearly confirm the presence of multicollinearity.
+
+In fit1, the VIF values for Age and Limit are approximately 1, which indicates no multicollinearity. This means the predictors in that model are essentially independent of each other.
+
+However, in fit2 and fit3, the VIF values for Rating and Limit are extremely large (around 160). A VIF above 10 is already considered problematic, so values around 160 indicate severe multicollinearity. This happens because Rating and Limit are almost perfectly linearly related.
+
+Thus, when both Rating and Limit are included in the model, they compete to explain the same variation in Balance, leading to unstable coefficient estimates and inflated standard errors. This explains why Limit becomes insignificant once Rating is added.
+
+Overall, the VIF results strongly support the earlier conclusion that Rating and Limit should not be included together in the same regression model.
+
+*PROBLEM 2:-*Problem to demonstrate the detection of out-
+lier, leverage and influential points
+
+Attach “Boston” data from MASS library in R. Select median value of owner-
+occupied homes, as the response and per capita crime rate, nitrogen oxides
+concentration, proportion of blacks and percentage of lower status of the popu-
+lation as predictors. The objective is to fit a multiple linear regression model of
+the response on the predictors. With reference to this problem, detect outliers,
+leverage points and influential points if any.
+
+```{r}
+#Attaching the Boston Data
+rm(list=ls())
+library(MASS)
+attach(Boston)
+df=data.frame(medv,crim,black,nox,lstat)
+head(df)
+```
+
+```{r}
+model=lm(medv~.,data=df)
+summary(model)
+```
+
+Fitted Model:
+
+$$
+\widehat{medv} = 30.0536 
+- 0.059424\,crim 
++ 0.006785\,black 
++ 3.415809\,nox 
+- 0.918431\,lstat
+$$
+
+We now draw the **residual plot**
+
+```{r}
+plot(model$fitted.values, resid(model),
+     xlab="Fitted Values",
+     ylab="Residuals",
+     main="Residuals vs Fitted")
+abline(h=0,col="red",lwd=2)
+```
+
+Comment:
+
+From the residual plot alone we can say some outliers both in the positive and negative direction.
+
+But from this plot we cannot comment on existence of leverage or influential points.
+
+#### To find Potential Outliers:
+
+We find out the standardized residuals from the fitted model.
+
+A point is declared as a potential outlier if its standradized residual is greater than 2 or less than -2.
+
+```{r}
+#Finding the standardized residuals
+std.res=rstandard(model)
+#Potential Outlier Detection
+outliers=which(abs(std.res)>2)
+outliers
+length(outliers)
+```
+
+We can observe 31 data points which can be potentially outliers. 
+
+#### To find Leverge points
+
+First, we find out the diagonal elements of the hat matrix. Now we calculate a cutoff point L=3*(p+1)/n
+where p is the number of predictors and n is number of rows. If the hatvalues exceed the leverage value then we call the points potential leverages.
+
+```{r}
+lev=hatvalues(model)
+
+n=nrow(df) #number of rows
+p=4  #number of predictors
+
+#Calculating the leverage values
+cutoff=3*(p+1)/n
+cutoff
+
+# High leverage observations
+leverage=which(lev>cutoff)
+leverage
+length(leverage)
+```
+
+We can observe 29 potential leverage points.
+
+#### To find Influential points
+
+We find out the Cook's distance Di which is a function of standardized residuals and elements of hat matrix.
+
+If for a data point Di>1, we can say that point is influential point.
+
+```{r}
+cook=cooks.distance(model) #Calculating the Di values
+influential=which(cook>1)
+length(influential)
+```
+
+In this model no value of Di exceeds one. So we can conclude that there exists no influential point.
