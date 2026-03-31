@@ -1,0 +1,200 @@
+---
+title: "MDTS4214_739_LOGISTIC REGRESSION"
+author: "Debkanta Ghosh"
+date: "2026-03-31"
+output: word_document
+---
+*Problem to demonstrate the fitting of a binary response variableusing logistic regression*
+
+a. Consider the Weekly data available in the ISLR package of R. Use the data from 1990 to 2008 as train
+data and the data on 2009-2010 as test data.
+
+```{r}
+rm(list=ls())
+library(ISLR)
+df = Weekly
+head(df)
+train.data=df[df$Year<=2008,-c(1,8)];head(train.data)
+test.data=df[df$Year>=2009,-c(1,8)];head(test.data)
+```
+
+b. Using the training data, fit a logistic regression with Direction as the response and the five lag variables plus Volume as predictors. Are there any significant predictors? If not, which of the tests is reporting the least p value. Interpret the coefficient corresponding to that test.
+```{r}
+fit1=glm(as.factor(Direction)~.,train.data,family="binomial")
+summary(fit1)
+```
+
+The fitted model is given by,
+$$
+\hat{E}(Y=1|x) = \frac{\exp(0.33258 - 0.06231 Lag1 + 0.04468 Lag2 - 0.01546 Lag3 - 0.03111 Lag4 - 0.03775 Lag5 - 0.08972 Volume)}{1 + \exp(0.33258 - 0.06231 Lag1 + 0.04468 Lag2 - 0.01546 Lag3 - 0.03111 Lag4 - 0.03775 Lag5 - 0.08972 Volume)}
+$$
+
+$$
+\text{where } Y = 1, \text{ if Direction = Up}
+$$
+$$
+\text{and } Y = 0, \text{ if Direction = Down}
+$$
+**Interpretation:-**
+The significance of each predictor is determined using p-values:
+
+- Intercept: p-value = 0.000415 < 0.01, hence it is highly significant.
+- Lag1: p-value = 0.033762 < 0.05, hence it is statistically significant at 5% level.
+- Lag2: p-value = 0.134002 > 0.05, hence it is not significant.
+- Lag3: p-value = 0.599933 > 0.05, hence it is not significant.
+- Lag4: p-value = 0.287241 > 0.05, hence it is not significant.
+- Lag5: p-value = 0.196774 > 0.05, hence it is not significant.
+- Volume: p-value = 0.097240 < 0.10, hence it is marginally significant at 10% level.
+
+Conclusion:
+
+The coefficient of Lag1 is -0.06231 and is statistically significant (p-value = 0.033762 < 0.05).
+
+This means that for a one-unit increase in Lag1, the log-odds of Direction = Up decrease by 0.06231, holding all other variables constant.
+
+Equivalently, the odds of the market going Up are multiplied by exp(-0.06231) ≈ 0.94. 
+Thus, a one-unit increase in Lag1 decreases the odds of an upward market movement by approximately 6%.
+
+**c. Estimate the odds of market going “up” at median values of the predictors.**
+```{r}
+med=apply(train.data[, -which(names(train.data)=="Direction")], 2, median)
+med
+
+log_odds=0.33258 - 0.06231*med["Lag1"] + 0.04468*med["Lag2"] -
+            0.01546*med["Lag3"] - 0.03111*med["Lag4"] -
+            0.03775*med["Lag5"] - 0.08972*med["Volume"]
+
+odds=exp(log_odds)
+odds
+```
+*Interpretation:-*
+
+The estimated odds represent the likelihood of the market going "Up" when all predictors 
+(Lag1, Lag2, Lag3, Lag4, Lag5, and Volume) are fixed at their median values.
+
+If the computed odds are greater than 1, it indicates that the market is more likely to go "Up" than "Down" at median predictor levels. 
+If the odds are less than 1, it suggests that the market is less likely to go "Up".
+
+Thus, the odds quantify how favorable the conditions (at median values of predictors) are for an upward market movement.
+
+d. Based on the training sample draw the ROC curve and comment.
+```{r}
+prob=predict(fit1, type = "response")
+
+library(pROC)
+roc_obj <- roc(train.data$Direction, prob)
+plot(roc_obj, col = "blue", main = "ROC Curve (Training Data)")
+auc(roc_obj)
+```
+*Interpretation:*
+
+The ROC curve plots the True Positive Rate (Sensitivity) against the False Positive Rate (1 − Specificity) 
+for different threshold values.
+
+If the curve lies close to the top-left corner, the model has good classification performance. 
+If it is close to the diagonal line, the model performs no better than random guessing.
+
+The Area Under the Curve (AUC) summarizes the performance:
+- AUC ≈ 0.5 → Poor model (random)
+- AUC between 0.7 and 0.8 → Acceptable
+- AUC between 0.8 and 0.9 → Good
+- AUC > 0.9 → Excellent
+
+Thus, based on the AUC value obtained from the training data, we can assess the model's ability 
+to correctly distinguish between "Up" and "Down" market directions.
+
+
+e.Using the fitted model and the predictor values from the test data, find an optimal cut point that
+minimizes T P R(1 − F P R). Report the confusion matrix corresponding to the optimal cut-point value.
+From the confusion matrix compute the test error rate.
+
+```{r}
+# Predicted probabilities
+y.hat.test = predict(fit1,test.data, type = "response")
+
+# ROC object
+library(pROC)
+roc.test = roc(test.data$Direction, y.hat.test)
+
+# Extract TPR and FPR
+tpr = roc.test$sensitivities
+fpr = 1 - roc.test$specificities
+
+# Criterion: TPR(1 - FPR)
+crit = tpr * (1 - fpr)
+
+# Optimal cutoff
+opt.index = which.max(crit)
+opt.cut = roc.test$thresholds[opt.index]
+opt.cut
+```
+The optimal cut-point is 0.4568, which means that observations with predicted probability greater than 0.4568 are classified as “Up”(=1), while those with probability less than or equal to 0.4568 are classified as “Down”(=0). This threshold maximizes the criterion TPR(1 − FPR).
+
+```{r}
+# Predicted class using optimal cutoff
+y.pred = ifelse(y.hat.test > opt.cut, "Up", "Down")
+
+# Confusion matrix
+conf.mat = table(Predicted = y.pred, Actual = test.data$Direction)
+conf.mat
+```
+**Interpretation:**
+
+The confusion matrix indicates that 22 observations were correctly classified as "Down" (true negatives) 
+and 34 observations were correctly classified as "Up" (true positives). 
+
+However, 27 observations that were actually "Up" were misclassified as "Down" (false negatives), 
+and 21 observations that were actually "Down" were misclassified as "Up" (false positives).
+
+This suggests that the model has a noticeable number of misclassifications, particularly a relatively 
+high number of false negatives, indicating difficulty in correctly identifying upward market movements.
+
+Overall, the model demonstrates moderate predictive performance on the test data, as it is able to 
+correctly classify a reasonable number of observations but still makes a substantial number of errors.
+
+```{r}
+test.error = mean(y.pred!=test.data$Direction)
+test.error
+```
+
+f. Is there any change in the test error rate if we have worked with only the two predictors lag 1 and lag 2?
+```{r}
+# Fit model with only Lag1 and Lag2
+model_lag12 = glm(as.factor(Direction) ~ Lag1 + Lag2, 
+                  family = "binomial", data = train.data)
+
+# Predicted probabilities on test data
+y.hat.test2 = predict(model_lag12, newdata = test.data, type = "response")
+
+# ROC for new model
+library(pROC)
+roc.test2 = roc(test.data$Direction, y.hat.test2)
+
+# Compute TPR and FPR
+tpr2 = roc.test2$sensitivities
+fpr2 = 1 - roc.test2$specificities
+
+# Criterion
+crit2 = tpr2 * (1 - fpr2)
+
+# Optimal cutoff
+opt.index2 = which.max(crit2)
+opt.cut2 = roc.test2$thresholds[opt.index2]
+
+# Predictions
+y.pred2 = ifelse(y.hat.test2 > opt.cut2, "Up", "Down")
+
+# Confusion matrix
+conf.mat2 = table(Predicted = y.pred2, Actual = test.data$Direction)
+conf.mat2
+
+# Test error rate
+test.error2 = mean(y.pred2 != test.data$Direction)
+test.error2
+```
+
+**Interpretation:**
+
+- The test error rate using only Lag1 and Lag2 is 0.3558, which is lower than the previous test error rate of 0.4615. This indicates an improvement in predictive performance when using only these two predictors.
+
+- Thus, the simpler model with Lag1 and Lag2 performs better on the test data.
